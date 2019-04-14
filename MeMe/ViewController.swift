@@ -28,28 +28,13 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     @IBOutlet weak var topTextField: UITextField!
     @IBOutlet weak var bottomTextField: UITextField!
     
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        topTextField.text = "TOP"
-        bottomTextField.text="BOTTOM"
-
-        let memeTextAttributes: [NSAttributedString.Key: Any] = [
-            NSAttributedString.Key.foregroundColor: UIColor.white,
-            NSAttributedString.Key.strokeColor: UIColor.black,
-            NSAttributedString.Key.font: UIFont(name: "HelveticaNeue-CondensedBlack", size: 40)!,
-            NSAttributedString.Key.strokeWidth:  3
-        ]
-        
-        topTextField.defaultTextAttributes = memeTextAttributes
-        bottomTextField.defaultTextAttributes = memeTextAttributes
-        
-        topTextField.textAlignment = .center
-        bottomTextField.textAlignment = .center
-        
-        topTextField.delegate = self
-        bottomTextField.delegate = self
-        
+        configureTextField(topTextField, text: "TOP")
+        configureTextField(bottomTextField, text: "BOTTOM")
+ 
         shareButton.isEnabled = false
 
 
@@ -65,18 +50,31 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         unsubscribeFromKeyboardNotifications()
     }
     
+    func configureTextField(_ textField: UITextField, text: String) {
+        textField.text = text
+        textField.delegate = self
+        textField.defaultTextAttributes = [
+            .font: UIFont(name: "HelveticaNeue-CondensedBlack", size: 40)!,
+            .strokeColor: UIColor.black,
+            .foregroundColor: UIColor.white,
+            .strokeWidth: -8.0
+        ]
+        textField.textAlignment = .center
+    }
+    
     @IBAction func pickAnImageFromAlbum(){
-        let imagePicker = UIImagePickerController()
-        imagePicker.delegate = self
-        imagePicker.sourceType = .photoLibrary
-        present(imagePicker, animated: true, completion: nil)
+        pickAnImage(.photoLibrary)
     }
     
     @IBAction func takeAnImageFromCamera(){
-        let imagePicker = UIImagePickerController()
-        imagePicker.delegate = self
-        imagePicker.sourceType = .camera
-        present(imagePicker, animated: true, completion: nil)
+       pickAnImage(.camera)
+    }
+    
+    func pickAnImage(_ source: UIImagePickerController.SourceType) {
+        let pickerController = UIImagePickerController()
+        pickerController.delegate = self
+        pickerController.sourceType = source
+        present(pickerController, animated: true, completion: nil)
     }
     
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]){
@@ -97,7 +95,9 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     @objc func keyboardWillShow(_ notification:Notification) {
         
-        view.frame.origin.y -= getKeyboardHeight(notification)
+        if (bottomTextField.isFirstResponder){ //or bottomTextField.isFirstResponder
+            view.frame.origin.y = -getKeyboardHeight(notification)
+        }
     }
     
     @objc func keyboardWillHide(_ notification:Notification) {
@@ -119,7 +119,9 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     func textFieldDidBeginEditing(_ textField: UITextField){
+ 
         return textField.text = ""
+
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -154,9 +156,11 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         let memeGenerate = generateMemedImage()
         let controller = UIActivityViewController(activityItems: [memeGenerate], applicationActivities: nil)
         self.present(controller, animated: true, completion: nil)
-        controller.completionWithItemsHandler = {(activityType: UIActivity.ActivityType?, completed: Bool, returnedItems:[Any]?, error: Error?) in
-            self.save()
-            self.dismiss(animated: true, completion: nil)
+        controller.completionWithItemsHandler = { activity, success, items, error in
+            if success {
+                self.save()
+                self.dismiss(animated: true, completion: nil)
+            }
         }
         
     }
